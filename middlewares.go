@@ -153,7 +153,7 @@ func (ac *appContext) frontAuthHandler(next http.Handler) http.Handler {
 			//fmt.Fprintln(w, "restricted Area")
 
 			context.Set(r, "User", token.Claims["User"])
-			log.Println(token.Claims["User"])
+			//log.Println(token.Claims["User"])
 			next.ServeHTTP(w, r)
 
 		case *jwt.ValidationError: // something was wrong during the validation

@@ -141,6 +141,8 @@ func (c *appContext) skillHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
+	skill.Data.Phone = ""
+	skill.Data.Address = "hidden"
 
 	w.Header().Set("Content-Type", "application/vnd.api+json")
 	json.NewEncoder(w).Encode(skill)
@@ -185,4 +187,17 @@ func (c *appContext) deleteSkillHandler(w http.ResponseWriter, r *http.Request) 
 
 	w.WriteHeader(http.StatusNoContent)
 	w.Write([]byte("\n"))
+}
+
+func (c *appContext) getSkillContact(w http.ResponseWriter, r *http.Request) {
+	params := context.Get(r, "params").(httprouter.Params)
+	repo := SkillRepo{c.db.C("skills")}
+	skill, err := repo.Find(params.ByName("slug"))
+	if err != nil {
+		panic(err)
+	}
+
+	w.Header().Set("Content-Type", "application/vnd.api+json")
+	json.NewEncoder(w).Encode(skill)
+
 }

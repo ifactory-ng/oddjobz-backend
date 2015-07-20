@@ -19,6 +19,7 @@ type Review struct {
 	Username  string        `json:"username"`
 	SkillSlug string        `json:"skillslug"`
 	Review    string        `json:"review"`
+	Rating    int           `json:"rating"`
 	User      User          `json:"user,omitempty" bson:"omitempty"`
 }
 
@@ -29,7 +30,7 @@ type ReviewsCollection struct {
 
 //ReviewResource is like ReviewsCollection for single data
 type ReviewResource struct {
-	Data Review `json:"review"`
+	Data Review `json:"data"`
 }
 
 //ReviewRepo is basically contains a mng collection, and s being a struct culd have methds that act on the data in the collection
@@ -70,7 +71,7 @@ func (r *ReviewRepo) Create(review *Review) error {
 func (c *appContext) reviewsHandler(w http.ResponseWriter, r *http.Request) {
 	repo := ReviewRepo{c.db.C("reviews")}
 	params := context.Get(r, "params").(httprouter.Params)
-	skillslug := params.ByName("skillslug")
+	skillslug := params.ByName("slug")
 	reviews, err := repo.All(skillslug)
 	if err != nil {
 		log.Println(err)
@@ -90,8 +91,10 @@ func (c *appContext) newReviewHandler(w http.ResponseWriter, r *http.Request) {
 
 	repo := ReviewRepo{c.db.C("reviews")}
 	params := context.Get(r, "params").(httprouter.Params)
-	skillslug := params.ByName("skillslug")
+	skillslug := params.ByName("slug")
 	body := context.Get(r, "body").(*ReviewResource)
+	log.Println(skillslug)
+
 	body.Data.SkillSlug = skillslug
 	body.Data.Username = user.Username
 	err = repo.Create(&body.Data)

@@ -9,22 +9,23 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+	"gopkg.in/redis.v2"
 )
 
 //User carries user data for exchange, especially in views
 type User struct {
-	ID         string `json:"id" bson:",omitempty"`
-	PID        string `json:"pid" bson:",omitempty"`
-	Provider   string `json:"provider"`
-	Username   string `json:"username"`
-	Password   string
-	Permission string `json:"permission" bson:"permission,omitempty"`
-	Image      string `json:"image"`
-	Name       string `json:"name"`
-	Link       string `json:"link"`
-	Gender     string `json:"gender"`
-	Email      string `json:"email"`
-	Phone      string `json:"phone"`
+	ID         string `json:"id,ommitempty" bson:",omitempty"`
+	PID        string `json:"pid,omitempty" bson:",omitempty"`
+	Provider   string `json:"provider,omitempty"`
+	Username   string `json:"username,omitempty"`
+	Password   string `json:",ommitempty"`
+	Permission string `json:"permission,omitempty" bson:"permission,omitempty"`
+	Image      string `json:"image,omitempty"`
+	Name       string `json:"name,omitempty"`
+	Link       string `json:"link,omitempty"`
+	Gender     string `json:"gender,omitempty"`
+	Email      string `json:"email,omitempty"`
+	Phone      string `json:"phone,omitempty"`
 }
 
 //UsersCollection holds a slice of user structs under the key "data", which culd be marshalled and sent to a client under json schema standard
@@ -54,7 +55,7 @@ func (r *UserRepo) All() (UsersCollection, error) {
 	return result, nil
 }
 
-//Find wuld return a user struct basedon the username of the user, which is the query
+//Find would return a user struct based on the username of the user, which is the query
 func (r *UserRepo) Find(query string) (UserResource, error) {
 	result := UserResource{}
 
@@ -171,24 +172,43 @@ func (c *appContext) userHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(user)
 }
 
-func (c *appContext) followUserHandler(w http.ResponseWriter, r *http.Request) {
+func (c *appContext) toggleUserFollowHandler(w http.ResponseWriter, r *http.Request) {
 	params := context.Get(r, "params").(httprouter.Params)
 	followUsername := params.ByName("username")
 	user, err := userget(r)
 	if err != nil {
 		log.Println(err)
 	}
-	keyFollowing := "users:" + user.Username + ":following"
-	keyFollowers := "users:" + followUsername + ":followers"
 
-	err = c.redis.SAdd(keyFollowing, followUsername).Err()
+	followToggle := redis.NewScript(`
+
+	 	followers =  "users:"..KEYS[1]..":followers"
+		following =  "users:"..KEYS[1]..":following"
+		local ids = redis.call("sismember", followers)
+		-- print(unpack(ids))
+		if ids == 1 do
+			redis.call("srem", followers, ARGV[1])
+			redis.call("srem", following, ARGV[1])
+		else
+			redis.call("sadd", followers, ARGV[1])
+			redis.call("sadd", following, ARGV[1])
+		end
+
+		return x
+	`)
+
+	resp, err := followToggle.Run(c.redis, []string{user.Username}, []string{followUsername}).Result()
+	if err != nil {
+		log.Println(resp, err)
+	}
+
+}
+
+func (c *appContext) checkFollowedState(users *[]User, username string) {
+	followers, err := c.redis.SMembers("users:" + username + ":followers").Result()
 	if err != nil {
 		log.Println(err)
 	}
 
-	err = c.redis.SAdd(keyFollowers, user.Username).Err()
-	if err != nil {
-		log.Println(err)
-	}
-
+	log.Println(followers)
 }

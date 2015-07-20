@@ -183,7 +183,7 @@ func main() {
 
 	router.Get("/api/v0.1/user/:username/feeds", commonHandlers.Append(appC.frontAuthHandler).ThenFunc(appC.userFeedsHandler))
 
-	router.Get("/api/v0.1/user/:username/follow", commonHandlers.Append(appC.frontAuthHandler).ThenFunc(appC.followUserHandler))
+	router.Get("/api/v0.1/user/:username/toggle-follow", commonHandlers.Append(appC.frontAuthHandler).ThenFunc(appC.toggleUserFollowHandler))
 	router.Get("/api/v0.1/user/:username", commonHandlers.ThenFunc(appC.userHandler))
 
 	router.Get("/api/v0.1/me", commonHandlers.Append(appC.frontAuthHandler).ThenFunc(appC.meHandler))
